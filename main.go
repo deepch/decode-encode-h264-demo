@@ -6,9 +6,11 @@ import (
 	"image/jpeg"
 	"log"
 	"os"
+	"time"
 
 	"github.com/deepch/dcodec"
 	bits "github.com/deepch/old_bits"
+	darknet "github.com/gyonluks/go-darknet"
 )
 
 const (
@@ -18,6 +20,55 @@ const (
 )
 
 func main() {
+
+	n := darknet.YOLONetwork{
+		GPUDeviceIndex:           0,
+		DataConfigurationFile:    "cfg/coco.data",
+		NetworkConfigurationFile: "yolov3-tiny.cfg",
+		WeightsFile:              "yolov3-tiny.weights",
+		Threshold:                .5,
+	}
+	n2 := darknet.YOLONetwork{
+		GPUDeviceIndex:           0,
+		DataConfigurationFile:    "cfg/coco.data",
+		NetworkConfigurationFile: "yolov3-tiny.cfg",
+		WeightsFile:              "yolov3-tiny.weights",
+		Threshold:                .5,
+	}
+	n3 := darknet.YOLONetwork{
+		GPUDeviceIndex:           0,
+		DataConfigurationFile:    "cfg/coco.data",
+		NetworkConfigurationFile: "yolov3-tiny.cfg",
+		WeightsFile:              "yolov3-tiny.weights",
+		Threshold:                .5,
+	}
+	n4 := darknet.YOLONetwork{
+		GPUDeviceIndex:           0,
+		DataConfigurationFile:    "cfg/coco.data",
+		NetworkConfigurationFile: "yolov3-tiny.cfg",
+		WeightsFile:              "yolov3-tiny.weights",
+		Threshold:                .5,
+	}
+
+	//log.Println(n)
+	if err := n.Init(); err != nil {
+		log.Println(err)
+		return
+	}
+	if err := n2.Init(); err != nil {
+		log.Println(err)
+		return
+	}
+	if err := n3.Init(); err != nil {
+		log.Println(err)
+		return
+	}
+	if err := n4.Init(); err != nil {
+		log.Println(err)
+		return
+	}
+	//log.Println("deep")
+	defer n.Close()
 	//encode decode example
 	//open test img
 	inJPEG, err := os.Open("in.jpeg")
@@ -66,7 +117,7 @@ func main() {
 	for i <= 100 {
 		buf, err := encoder.Encode(imgYCbCr)
 		if err != nil {
-			log.Println(err)
+			log.Println("encode", err, "need more feed encoder?")
 			continue
 		}
 		nalus, _ := SplitNALUs(buf)
@@ -77,7 +128,8 @@ func main() {
 				//ok test decode image
 				decImage, err := decoder.Decode(lastkeys)
 				if err != nil {
-					log.Println(err)
+					naluTypefrec := nalu[0] & 0x1f
+					log.Println("decode", naluTypefrec, err, "if 7 or 8 sps and pps it normal")
 					continue
 				}
 				//save last frame
@@ -93,6 +145,87 @@ func main() {
 	}
 	outJPEG.Write(imgbuffer.Bytes())
 	//ffplay out.h264
+	imgs, err := darknet.ImageFromPath("139.jpg")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	imgs2, err := darknet.ImageFromPath("139.jpg")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	imgs3, err := darknet.ImageFromPath("139.jpg")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	imgs4, err := darknet.ImageFromPath("139.jpg")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer imgs.Close()
+	go func() {
+		for {
+			//ddd := time.Now()
+
+			dr, err := n2.Detect(imgs2)
+			if err != nil || dr == nil {
+				log.Println(err)
+				return
+			}
+		}
+	}()
+	go func() {
+		for {
+			//ddd := time.Now()
+
+			dr, err := n3.Detect(imgs3)
+			if err != nil || dr == nil {
+				log.Println(err)
+				return
+			}
+		}
+	}()
+	go func() {
+		for {
+			//ddd := time.Now()
+
+			dr, err := n4.Detect(imgs4)
+			if err != nil || dr == nil {
+				log.Println(err)
+				return
+			}
+		}
+	}()
+	for {
+		ddd := time.Now()
+
+		dr, err := n.Detect(imgs)
+		if err != nil || dr == nil {
+			log.Println(err)
+			return
+		}
+		//	var deep := dr
+		//	log.Println("===>deep")
+		//	log.Println("Network-only time taken:", dr.NetworkOnlyTimeTaken)
+		//	log.Println("Overall time taken:", dr.OverallTimeTaken)
+		//		for _, d := range dr.Detections {
+		//			for i := range d.ClassIDs {
+		//				bBox := d.BoundingBox
+		//		fmt.Printf("%s (%d): %.4f%% | start point: (%d,%d) | end point: (%d, %d)\n",
+		//		d.ClassNames[i], d.ClassIDs[i],
+		//		d.Probabilities[i],
+		//		bBox.StartPoint.X, bBox.StartPoint.Y,
+		//		bBox.EndPoint.X, bBox.EndPoint.Y,
+		//	)
+		//		}
+		//	}
+		log.Println("====>", time.Now().Sub(ddd), len(dr.Detections))
+		//	time.Sleep(100 * time.Millisecond)
+	}
+	//	log.Println("====>", time.Now().Sub(ddd), len(dr.Detections))
 }
 
 func SplitNALUs(b []byte) (nalus [][]byte, typ int) {
